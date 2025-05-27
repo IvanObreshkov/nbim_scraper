@@ -37,6 +37,8 @@ class ExcelFormats(TypedDict):
 
 
 # Define constants
+GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH = "/Users/iobreshkov"
+
 JSON_PREV_RUN_OUTPUT_FILE_PREFIX = "previous_run"
 
 XLSX_CURRENT_RUN_OUTPUT_FILE_PREFIX = "previous_run"
@@ -51,7 +53,7 @@ PREVIOUS_RUN_JSON_FILE = "missing_file"
 
 def _count_number_of_existing_previous_run_files() -> int:
     number_of_prev_run_files = 0
-    for filename in os.listdir("."):
+    for filename in os.listdir(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH):
         if filename.endswith(".json") and JSON_PREV_RUN_OUTPUT_FILE_PREFIX in filename:
             number_of_prev_run_files += 1
 
@@ -61,7 +63,7 @@ def _count_number_of_existing_previous_run_files() -> int:
 def _leave_the_latest_previous_run_file():
     """Leaves only the latest previous run file and deletes the others"""
     previous_run_files = []
-    for filename in os.listdir("."):
+    for filename in os.listdir(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH):
         if filename.endswith(".json") and JSON_PREV_RUN_OUTPUT_FILE_PREFIX in filename:
             previous_run_files.append(filename)
 
@@ -84,8 +86,10 @@ def _write_to_json(scraped_data: list[ScrapedItem], output_file_prefix: str):
     """Helper method that writes the scraped data to a JSON file with the name output_file_prefix_{YYYY-MM-DD}, where
     the timestamp is today's date"""
     filename = f"{output_file_prefix}_{TODAY_DATE}.json"
+    full_filepath = os.path.join(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH, filename)
+
     try:
-        with open(filename, 'w') as f:
+        with open(full_filepath, 'w') as f:
             json.dump(scraped_data, f, indent=4)
         print(f"Successfully wrote {len(scraped_data)} items to {filename}")
     except IOError as e:
@@ -110,6 +114,13 @@ def _get_json_file_by_prefix(prefix: str) -> str | None:
 def before_exec():
     """Prepares the environment for execution"""
     global PREVIOUS_RUN_JSON_FILE
+
+    # Ensure the storage directory exists
+    try:
+        os.makedirs(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH, exist_ok=True)
+    except OSError as e:
+        print(f"Error creating directory {GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH}: {e}. Exiting.")
+        exit(1) # Exit if we can't create the essential directory
 
     number_of_prev_run_files = _count_number_of_existing_previous_run_files()
     if number_of_prev_run_files > 1:
@@ -251,10 +262,12 @@ def generate_xlsx_from_scraped_data(scraped_data: list[ScrapedItem], output_file
     """Generates an Excel file from the whole scraped NBIM table"""
 
     filename = f"{output_file_prefix}_{TODAY_DATE}.xlsx"
+    full_filepath = os.path.join(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH, filename)
+
     try:
         df = pd.DataFrame(scraped_data)
         sheet_name = "Scraped data"
-        df.to_excel(filename, sheet_name=sheet_name, index=False)
+        df.to_excel(full_filepath, sheet_name=sheet_name, index=False)
         print(f"Successfully wrote {len(scraped_data)} to sheet {sheet_name} in {filename}")
     except Exception as e:
         print(f"Failed to write data to {filename}: {e}")
@@ -353,6 +366,8 @@ def generate_xlsx_from_changes(changes: ChangesDict, output_file_prefix: str):
     with "Added items" and "Deleted items" sections side-by-side, separated by a blank column.
     """
     filename = f"{output_file_prefix}_{TODAY_DATE}.xlsx"
+    full_filepath = os.path.join(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH, filename)
+
 
     added_items = changes["added_items"]
     deleted_items = changes["deleted_items"]
@@ -360,7 +375,7 @@ def generate_xlsx_from_changes(changes: ChangesDict, output_file_prefix: str):
     item_headers = list(ScrapedItem.__annotations__.keys())
     num_item_cols = len(item_headers)
 
-    with pd.ExcelWriter(filename, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(full_filepath, engine='xlsxwriter') as writer:
         workbook = writer.book
         worksheet = workbook.add_worksheet("Changes")
 
