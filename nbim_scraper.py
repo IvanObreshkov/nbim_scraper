@@ -37,7 +37,7 @@ class ExcelFormats(TypedDict):
 
 
 # Define constants
-GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH = "/Users/iobreshkov"
+GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH = "/Users/iobreshkov/scraper"
 
 JSON_PREV_RUN_OUTPUT_FILE_PREFIX = "previous_run"
 
@@ -104,7 +104,7 @@ def _get_json_file_by_prefix(prefix: str) -> str | None:
          the json file name if the file exists or None if the file does not exist
     """
 
-    for filename in os.listdir("."):
+    for filename in os.listdir(GENERATED_FILES_STORAGE_FOLDER_ABSOLUTE_PATH):
         if filename.endswith(".json") and prefix in filename:
             return filename
 
@@ -125,11 +125,11 @@ def before_exec():
     number_of_prev_run_files = _count_number_of_existing_previous_run_files()
     if number_of_prev_run_files > 1:
         _leave_the_latest_previous_run_file()
-        PREVIOUS_RUN_JSON_FILE = _get_json_file_by_prefix(prefix=JSON_PREV_RUN_OUTPUT_FILE_PREFIX) if not None else ""
+        PREVIOUS_RUN_JSON_FILE = _get_json_file_by_prefix(prefix=JSON_PREV_RUN_OUTPUT_FILE_PREFIX) or ""
         return
 
     if number_of_prev_run_files == 1:
-        PREVIOUS_RUN_JSON_FILE = _get_json_file_by_prefix(prefix=JSON_PREV_RUN_OUTPUT_FILE_PREFIX) if not None else ""
+        PREVIOUS_RUN_JSON_FILE = _get_json_file_by_prefix(prefix=JSON_PREV_RUN_OUTPUT_FILE_PREFIX) or ""
         return
 
 
